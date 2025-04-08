@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QIcon
 
-DEVICE_PATH = os.getenv(
-    "NOTOUCHSCREEN_DEVICE_PATH", "/sys/bus/hid/drivers/hid-multitouch"
+DRIVER_PATH = os.getenv(
+    "TOUCHSCREEN_DRIVER_PATH", "/sys/bus/hid/drivers/hid-multitouch"
 )
 
 global device
@@ -57,8 +57,8 @@ def get_devices():
     try:
         return list(
             filter(
-                lambda f: os.path.isdir(os.path.join(DEVICE_PATH, f)) and ":" in f,
-                os.listdir(DEVICE_PATH),
+                lambda f: os.path.isdir(os.path.join(DRIVER_PATH, f)) and ":" in f,
+                os.listdir(DRIVER_PATH),
             )
         )
     except FileNotFoundError:
