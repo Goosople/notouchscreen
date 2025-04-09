@@ -1,0 +1,12 @@
+[Unit]
+Description=Driver Privileged Daemon for notouchscreen
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/driver_daemon
+User=root
+Restart=on-failure
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target

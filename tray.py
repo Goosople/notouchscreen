@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import dbus
 from PyQt6.QtWidgets import (
     QApplication,
     QSystemTrayIcon,
@@ -43,14 +44,13 @@ class TrayIcon(QSystemTrayIcon):
         QApplication.quit()
 
 
-def show_error_and_exit(err):
+def show_error(err):
     QMessageBox(
         QMessageBox.Icon.Critical,
         _("Error"),
         err,
         QMessageBox.StandardButton.Close,
     ).exec()
-    QApplication.quit()
 
 
 def get_devices():
@@ -62,22 +62,35 @@ def get_devices():
             )
         )
     except FileNotFoundError:
-        show_error_and_exit(_("DEVICE_PATH is not found"))
+        show_error(_("DEVICE_PATH is not found"))
+        QApplication.quit()
     except PermissionError:
-        show_error_and_exit(_("Permission denied to get devices"))
+        show_error(_("Permission denied to get devices"))
+        QApplication.quit()
     except Exception as e:
-        show_error_and_exit(_("Unknown error") + f": {e}")
+        show_error(_("Unknown error") + f": {e}")
+        QApplication.quit()
 
 
 def switch_touchscreen(device):
-    print(device)
-    return  # FIXME: implement
+    device["status"] = not device["status"]
+    try:
+        result = dbus.Interface(
+            dbus.SystemBus().get_object(
+                "top.goosople.notouchscreen.DriverService",
+                "/top/goosople/notouchscreen/DriverService",
+            ),
+            "top.goosople.notouchscreen.DriverService",
+        ).switchTouchscreen(device["id"], device["status"])
+        print(result)
+    except dbus.exceptions.DBusException as e:
+        show_error(str(e))
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    device = get_devices()[0]  # TODO: add selection
+    device = {"id": get_devices()[0], "status": True}  # TODO: add selection
     tray = TrayIcon()
     tray.show()
     sys.exit(app.exec())

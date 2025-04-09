@@ -17,14 +17,8 @@ using namespace top::goosople::notouchscreen;
 class Driver final {
 private:
     inline static const std::string DRIVER_PATH = "/sys/bus/hid/drivers/hid-multitouch";
-    std::ofstream bindFile;
-    std::ofstream unbindFile;
 
-    Driver()
-    {
-        bindFile.open(DRIVER_PATH + "/bind");
-        unbindFile.open(DRIVER_PATH + "/unbind");
-    }
+    Driver() = default;
 
 public:
     static Driver& getInstance()
@@ -36,19 +30,14 @@ public:
     Driver(const Driver&) = delete;
     Driver& operator=(const Driver&) = delete;
 
-    ~Driver()
-    {
-        bindFile.close();
-        unbindFile.close();
-    }
+    ~Driver() = default;
 
     bool setTouchscreen(std::string device_id, bool status)
     {
         if (status)
-            bindFile << device_id;
+            return system(("echo "+device_id+" > "+DRIVER_PATH+"/bind").c_str());
         else
-            unbindFile << device_id;
-        return status ? bindFile.good() : unbindFile.good();
+            return system(("echo "+device_id+" > "+DRIVER_PATH+"/unbind").c_str());
     }
 };
 
