@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+    <interface name="top.goosople.notouchscreen.DriverService">
+        <method name="switchTouchscreen">
+            <arg name="device_id" type="s" direction="in"/>
+            <arg name="status" type="b" direction="in"/>
+            <arg name="result" type="b" direction="out"/>
+        </method>
+    </interface>
+</node>
