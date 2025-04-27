@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QLabel,
     QListWidget,
-    QListWidgetItem,
 )
 from PyQt6.QtGui import QAction, QIcon
 
@@ -52,7 +51,7 @@ class TrayIcon(QSystemTrayIcon):
             )
 
     def on_change_device(self):
-        self.device["id"] = select_device(False) or self.device["id"]
+        self.device["id"] = select_device(is_first_time=False) or self.device["id"]
 
     def on_quit(self):
         QApplication.quit()
@@ -103,9 +102,14 @@ def show_error(err):
 def select_device(is_first_time=True):
     """Show device selection dialog."""
     devices = get_devices()
-    if not devices:  # Handle empty device list
-        show_error(_("No devices found"))
+    if (not devices) or len(devices) == 0:  # Handle empty device list
+        show_error(_("No touch devices found"))
+        if is_first_time:
+            sys.exit(_("No touch devices found"))
         return None
+
+    if is_first_time and len(devices) == 1:
+        return devices[0]
 
     dialog = ListOptionDialog(
         _("Devices"),
@@ -113,9 +117,9 @@ def select_device(is_first_time=True):
         devices,
         is_cancelable=not is_first_time,
     )
-    if dialog.exec() == QDialog.DialogCode.Accepted:
-        return devices[dialog.selected_option()]
-    return None
+    if dialog.exec() == QDialog.DialogCode.Rejected:
+        return None
+    return devices[dialog.selected_option()]
 
 
 def is_touchscreen(device_id):
@@ -131,7 +135,7 @@ def get_devices():
     try:
         return [d for d in os.listdir(DEVICE_PATH) if is_touchscreen(d)]
     except FileNotFoundError:
-        show_error(_("DEVICE_PATH is not found"))
+        show_error(_("Device files not found"))
     except PermissionError:
         show_error(_("Permission denied to get devices"))
     except Exception as e:
@@ -139,7 +143,7 @@ def get_devices():
     QApplication.quit()
 
 
-def switch_touchscreen(device):
+def switch_touchscreen(device, status=None):
     """Toggle touchscreen status."""
     device["status"] = not device["status"]
 
@@ -153,7 +157,8 @@ def switch_touchscreen(device):
             proxy,
             "top.goosople.notouchscreen.DriverService",
         )
-        interface.switchTouchscreen(device["id"], device["status"])
+        if not interface.switchTouchscreen(device["id"], status or device["status"]):
+            show_error(_("Failed to switch the touchscreen"))
     except dbus.exceptions.DBusException as e:
         show_error(_("Daemon error") + f": {e}")
 
@@ -162,13 +167,10 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
 
-    # Initialize device and tray without globals
-    device = {"id": select_device(True), "status": True}
-    if not device["id"]:  # Fallback if no selection
-        devices = get_devices()
-        device["id"] = devices[0] if devices else None
+    device = {"id": select_device(is_first_time=True), "status": True}
 
-    tray = TrayIcon(device)  # Pass device reference
+    tray = TrayIcon(device)
     tray.show()
 
+    app.aboutToQuit.connect(lambda: switch_touchscreen(device, status=True))
     sys.exit(app.exec())

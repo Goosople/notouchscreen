@@ -23,7 +23,7 @@ class Driver final {
 private:
     Driver() = default;
 
-    std::fstream bindFile;
+    std::ofstream bindFile;
 
 public:
     static Driver& getInstance()
@@ -81,6 +81,7 @@ int main()
     DriverService service(
         *connection,
         sdbus::ObjectPath("/top/goosople/notouchscreen/DriverService"));
+
     sd_notify(0, "READY=1");
 
     connection->enterEventLoop();
