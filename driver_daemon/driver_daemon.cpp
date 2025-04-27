@@ -1,6 +1,7 @@
 #include "DriverServiceAdaptor.h"
 #include <csignal>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sdbus-c++/IConnection.h>
@@ -13,12 +14,16 @@
 #include <vector>
 
 using namespace top::goosople::notouchscreen;
+namespace fs = std::filesystem;
+
+const fs::path DRIVER_PATH = "/sys/bus/hid/drivers/hid-multitouch";
+const fs::path DEVICE_PATH = "/sys/bus/hid/devices";
 
 class Driver final {
 private:
-    inline static const std::string DRIVER_PATH = "/sys/bus/hid/drivers/hid-multitouch";
-
     Driver() = default;
+
+    std::fstream bindFile;
 
 public:
     static Driver& getInstance()
@@ -32,12 +37,22 @@ public:
 
     ~Driver() = default;
 
+    bool isValidDevice(std::string device_id)
+    {
+        return fs::is_directory(DEVICE_PATH / device_id);
+    }
+
     bool setTouchscreen(std::string device_id, bool status)
     {
-        if (status)
-            return system(("echo "+device_id+" > "+DRIVER_PATH+"/bind").c_str());
-        else
-            return system(("echo "+device_id+" > "+DRIVER_PATH+"/unbind").c_str());
+        if (!isValidDevice(device_id))
+            return false;
+        if (bindFile.is_open())
+            bindFile.close();
+        bindFile.open(DRIVER_PATH / (status ? "bind" : "unbind"));
+        bindFile << device_id;
+        bool result = bindFile.good();
+        bindFile.close();
+        return result;
     }
 };
 
